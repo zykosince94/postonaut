@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<!-- AngularJS -->
 		<script>
 					/*
 				AngularJS v1.7.8
@@ -356,49 +357,173 @@
 		</script>
 	</head>
 	<body>
+		<!-- Application Script -->
 		<script>
-			var app = angular.module("crudApp", []); 
-			app.controller("crudCtrl", function($scope, $http) {
+			var app = angular.module("postonautApp", []);
+			app.controller("appCtrl", function ($scope, $http) {
 				var ctrl = this;
-				ctrl.url = "";
-				ctrl.response = "";
-				ctrl.newProduct = "";
-				ctrl.products = ["Milk", "Bread", "Cheese"];
-				ctrl.addNewProduct = () => {
-					if(ctrl.newProduct != ""){
-					ctrl.products.push(ctrl.newProduct);
-					ctrl.newProduct = "";
+				ctrl.title = "Postonaut";
+				ctrl.requestsList = [];
+				ctrl.selectedRequest;
+
+				ctrl.init = () => {
+					ctrl.createNewRequest();
+					ctrl.selectedRequest = ctrl.requestsList[0];
+				}
+
+				ctrl.createNewRequest = () => {
+					ctrl.requestsList.push(new APIRequest({
+						identifier: ctrl.getGuid(),
+						type: RequestTypes.GET,
+						status: RequestStatus.FRESH
+					}));
+					ctrl.selectedRequest = ctrl.requestsList[ctrl.requestsList.length - 1];
+				}
+
+				ctrl.selectRequest = (index) => {
+					ctrl.selectedRequest = ctrl.requestsList[index];
+				}
+
+				ctrl.sendRequest = () => {
+					debugger;
+					const requestIdentifier = ctrl.selectedRequest.identifier;
+
+					switch (ctrl.selectedRequest.type) {
+						case (RequestTypes.GET): ctrl.sendGetRequest(requestIdentifier);
+							break;
+						case (RequestTypes.POST): ctrl.sendPostRequest(requestIdentifier);
+							break;
+						case (RequestTypes.PUT): ctrl.sendPutRequest(requestIdentifier);
+							break;
+						case (RequestTypes.DELETE): ctrl.sendDeleteRequest(requestIdentifier);
+							break;
+						default: break;
 					}
 				}
-				ctrl.removeProduct = (index) => {
-					ctrl.products.splice(index, 1);
-				}
-				ctrl.executeGetCall = function(){
-					$http.get(ctrl.url).then(response => {
-						ctrl.response = JSON.stringify(response.data);
+
+				ctrl.sendGetRequest = (requestIdentifier) => {
+					const request = ctrl.requestsList.find(r => r.identifier == requestIdentifier);
+					request.status = RequestStatus.INPROGRESS;
+					$http.get(request.url).then(response => {
+						request.response = JSON.stringify(response.data);
+						request.status = RequestStatus.COMPLETE;
 					},
-					error => ctrl.response = JSON.stringify(error.data));
+						error => request.response = JSON.stringify(error.data));
 				}
+
+				ctrl.sendPostRequest = () => {
+
+				}
+
+				ctrl.sendPutRequest = () => {
+
+				}
+
+				ctrl.sendDeleteRequest = () => {
+
+				}
+
+				ctrl.getGuid = () => {
+					return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+						var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+						return v.toString(16);
+					});
+				}
+
+				ctrl.init();
 			});
-</script>
-				
-				<div ng-app="crudApp" ng-controller="crudCtrl as ctrl">
-					<h1>Basic Crud App</h1>
-					<ul>
-						<li ng-repeat="x in ctrl.products">{{x}} <button ng-click="ctrl.removeProduct($index)">X</button></li>
-					</ul>
-					<div>
-						<input type="text" ng-model="ctrl.newProduct">
-						<button ng-click="ctrl.addNewProduct()">ADD</button>
-					</div>
-				
-					<div style="margin-top:20px">
-						<input type="text" ng-model="ctrl.url">
-						<button ng-click="ctrl.executeGetCall()">GET</button>
-						<div>
-							<textarea style="margin-top:20px" rows="10" disabled ng-model="ctrl.response"></textarea>
+
+			class APIRequest {
+				constructor(args) {
+					this.identifier = args.identifier;
+					this.url = args.url;
+					this.type = args.type;
+					this.status = args.status;
+					this.response = args.response;
+				}
+			}
+
+			const RequestTypes = {
+				GET: "GET",
+				POST: "POST",
+				PUT: "PUT",
+				DELETE: "DELETE"
+			}
+
+			const RequestStatus = {
+				FRESH: "FRESH",
+				INPROGRESS: "INPROGRESS",
+				COMPLETE: "COMPLETE"
+			}
+		</script>
+	
+		<!-- Application CSS -->
+		<style>
+			.title-container {
+				padding: 20px;
+			}
+	
+			.app-container table td,
+			th {
+				padding: 20px;
+			}
+		</style>
+	
+		<!-- Application HTML -->
+		<div ng-app="postonautApp" ng-controller="appCtrl as ctrl">
+			<div class="title-container">
+				<h1>{{ctrl.title}}</h1>
+			</div>
+			<div class="app-container">
+				<table style="width:100%">
+					<th colspan="2" style="text-align: left;">
+						<div class="req-tabs-container">
+							<div style="display:inline" ng-repeat="req in ctrl.requestsList">
+								<button ng-click="ctrl.selectRequest($index)">{{req.type}} -
+									{{req.url ? req.url : "New Request"}}</button>
+							</div>
+							<div style="display:inline">
+								<button ng-click="ctrl.createNewRequest()">
+									+
+								</button>
+							</div>
 						</div>
-					</div>
-				</div>
+					</th>
+					<tr>
+						<td class="selected-req-res-container">
+							<div class="req-container">
+								<div style="display: inline" class="req-type-container">
+									<select ng-model="ctrl.selectedRequest.type">
+										<option value="GET">GET</option>
+										<option value="POST">POST</option>
+										<option value="PUT">PUT</option>
+										<option value="DELETE">DELETE</option>
+									</select>
+								</div>
+								<div style="display: inline" class="req-url-container">
+									<input style="width:80%" type="text" placeholder="URL"
+										ng-model="ctrl.selectedRequest.url">
+								</div>
+								<div style="display: inline;">
+									<button ng-click="ctrl.sendRequest()">Send</button>
+								</div>
+							</div>
+							<div class="res-container">
+								<textarea ng-if="ctrl.selectedRequest" ng-model="ctrl.selectedRequest.response"
+									style="width:100%" rows="25" disabled="readOnly"></textarea>
+								STATUS : {{ctrl.selectedRequest.status}}
+							</div>
+						</td>
+						<td style="vertical-align: top;" class="req-history-container">
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+						</td>
+					</tr>
+				</table>
+			</div>
+		</div>
 	</body>
 </html>
