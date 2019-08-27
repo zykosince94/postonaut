@@ -365,6 +365,7 @@
 				ctrl.title = "Postonaut";
 				ctrl.requestsList = [];
 				ctrl.selectedRequest;
+				ctrl.showUrlValidation = false;
 
 				ctrl.init = () => {
 					ctrl.createNewRequest();
@@ -372,6 +373,7 @@
 				}
 
 				ctrl.createNewRequest = () => {
+					ctrl.showUrlValidation = false;
 					ctrl.requestsList.push(new APIRequest({
 						identifier: ctrl.getGuid(),
 						type: RequestTypes.GET,
@@ -381,23 +383,27 @@
 				}
 
 				ctrl.selectRequest = (index) => {
+					ctrl.showUrlValidation = false;
 					ctrl.selectedRequest = ctrl.requestsList[index];
 				}
 
 				ctrl.sendRequest = () => {
-					debugger;
-					const requestIdentifier = ctrl.selectedRequest.identifier;
+					if (ctrl.selectedRequest.url) {
+						const requestIdentifier = ctrl.selectedRequest.identifier;
 
-					switch (ctrl.selectedRequest.type) {
-						case (RequestTypes.GET): ctrl.sendGetRequest(requestIdentifier);
-							break;
-						case (RequestTypes.POST): ctrl.sendPostRequest(requestIdentifier);
-							break;
-						case (RequestTypes.PUT): ctrl.sendPutRequest(requestIdentifier);
-							break;
-						case (RequestTypes.DELETE): ctrl.sendDeleteRequest(requestIdentifier);
-							break;
-						default: break;
+						switch (ctrl.selectedRequest.type) {
+							case (RequestTypes.GET): ctrl.sendGetRequest(requestIdentifier);
+								break;
+							case (RequestTypes.POST): ctrl.sendPostRequest(requestIdentifier);
+								break;
+							case (RequestTypes.PUT): ctrl.sendPutRequest(requestIdentifier);
+								break;
+							case (RequestTypes.DELETE): ctrl.sendDeleteRequest(requestIdentifier);
+								break;
+							default: break;
+						}
+					} else {
+						ctrl.showUrlValidation = true;
 					}
 				}
 
@@ -405,10 +411,13 @@
 					const request = ctrl.requestsList.find(r => r.identifier == requestIdentifier);
 					request.status = RequestStatus.INPROGRESS;
 					$http.get(request.url).then(response => {
-						request.response = JSON.stringify(response.data);
+						request.response = JSON.stringify(response, null, 4);
 						request.status = RequestStatus.COMPLETE;
 					},
-						error => request.response = JSON.stringify(error.data));
+						error => {
+							request.response = JSON.stringify(error, null, 4);
+							request.status = RequestStatus.COMPLETE;
+						});
 				}
 
 				ctrl.sendPostRequest = () => {
@@ -420,7 +429,16 @@
 				}
 
 				ctrl.sendDeleteRequest = () => {
-
+					const request = ctrl.requestsList.find(r => r.identifier == requestIdentifier);
+					request.status = RequestStatus.INPROGRESS;
+					$http.delete(request.url).then(response => {
+						request.response = JSON.stringify(response, null, 4);
+						request.status = RequestStatus.COMPLETE;
+					},
+						error => {
+							request.response = JSON.stringify(error, null, 4);
+							request.status = RequestStatus.COMPLETE;
+						});
 				}
 
 				ctrl.getGuid = () => {
@@ -475,12 +493,12 @@
 				<h1>{{ctrl.title}}</h1>
 			</div>
 			<div class="app-container">
-				<table style="width:100%">
+				<table border="1" style="width:100%">
 					<th colspan="2" style="text-align: left;">
 						<div class="req-tabs-container">
 							<div style="display:inline" ng-repeat="req in ctrl.requestsList">
 								<button ng-click="ctrl.selectRequest($index)">{{req.type}} -
-									{{req.url ? req.url : "New Request"}}</button>
+									{{req.url ? (req.url.length > 15 ? (req.url.substring(0, 15) + "..") : req.url) : "New Request"}}</button>
 							</div>
 							<div style="display:inline">
 								<button ng-click="ctrl.createNewRequest()">
@@ -490,6 +508,13 @@
 						</div>
 					</th>
 					<tr>
+						<td style="vertical-align: top;" class="req-history-container">
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+							<button style="display:block">Saved Request</button>
+						</td>
 						<td class="selected-req-res-container">
 							<div class="req-container">
 								<div style="display: inline" class="req-type-container">
@@ -505,21 +530,22 @@
 										ng-model="ctrl.selectedRequest.url">
 								</div>
 								<div style="display: inline;">
-									<button ng-click="ctrl.sendRequest()">Send</button>
+									<button ng-click="ctrl.sendRequest()"
+										ng-disabled="ctrl.selectedRequest.status == 'INPROGRESS'">Send</button>
 								</div>
+								<span style="display:block; font-size: 12px; color:red"
+									ng-if="ctrl.showUrlValidation && !ctrl.selectedRequest.url">
+									Please enter the URL
+								</span>
 							</div>
 							<div class="res-container">
-								<textarea ng-if="ctrl.selectedRequest" ng-model="ctrl.selectedRequest.response"
-									style="width:100%" rows="25" disabled="readOnly"></textarea>
+								<pre style="overflow-x: scroll;
+										height:400px;
+										border: 1px solid black;" ng-if="ctrl.selectedRequest">
+											{{ctrl.selectedRequest.response}}
+										</pre>
 								STATUS : {{ctrl.selectedRequest.status}}
 							</div>
-						</td>
-						<td style="vertical-align: top;" class="req-history-container">
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
 						</td>
 					</tr>
 				</table>
