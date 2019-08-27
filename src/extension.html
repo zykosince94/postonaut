@@ -366,6 +366,7 @@
 				ctrl.requestsList = [];
 				ctrl.selectedRequest;
 				ctrl.showUrlValidation = false;
+				ctrl.toggleRequestOptions = true;
 
 				ctrl.init = () => {
 					ctrl.createNewRequest();
@@ -387,18 +388,35 @@
 					ctrl.selectedRequest = ctrl.requestsList[index];
 				}
 
+				ctrl.createParam = () => {
+					ctrl.selectedRequest.config.params.push(new Param());
+				}
+
+				ctrl.removeParam = (index) => {
+					ctrl.selectedRequest.config.params.splice(index, 1);
+				}
+
+				ctrl.createHeader = () => {
+					ctrl.selectedRequest.config.headers.push(new Param());
+				}
+
+				ctrl.removeHeader = (index) => {
+					ctrl.selectedRequest.config.headers.splice(index, 1);
+				}
+
 				ctrl.sendRequest = () => {
 					if (ctrl.selectedRequest.url) {
-						const requestIdentifier = ctrl.selectedRequest.identifier;
+						const request = ctrl.requestsList.find(r => r.identifier == ctrl.selectedRequest.identifier);
+						const config = ctrl.processAndGetConfig(request.config);
 
 						switch (ctrl.selectedRequest.type) {
-							case (RequestTypes.GET): ctrl.sendGetRequest(requestIdentifier);
+							case (RequestTypes.GET): ctrl.sendGetRequest(request, config);
 								break;
-							case (RequestTypes.POST): ctrl.sendPostRequest(requestIdentifier);
+							case (RequestTypes.POST): ctrl.sendPostRequest(request, config);
 								break;
-							case (RequestTypes.PUT): ctrl.sendPutRequest(requestIdentifier);
+							case (RequestTypes.PUT): ctrl.sendPutRequest(request, config);
 								break;
-							case (RequestTypes.DELETE): ctrl.sendDeleteRequest(requestIdentifier);
+							case (RequestTypes.DELETE): ctrl.sendDeleteRequest(request, config);
 								break;
 							default: break;
 						}
@@ -407,10 +425,9 @@
 					}
 				}
 
-				ctrl.sendGetRequest = (requestIdentifier) => {
-					const request = ctrl.requestsList.find(r => r.identifier == requestIdentifier);
+				ctrl.sendGetRequest = (request, config) => {
 					request.status = RequestStatus.INPROGRESS;
-					$http.get(request.url).then(response => {
+					$http.get(request.url, config).then(response => {
 						request.response = JSON.stringify(response, null, 4);
 						request.status = RequestStatus.COMPLETE;
 					},
@@ -420,18 +437,9 @@
 						});
 				}
 
-				ctrl.sendPostRequest = () => {
-
-				}
-
-				ctrl.sendPutRequest = () => {
-
-				}
-
-				ctrl.sendDeleteRequest = () => {
-					const request = ctrl.requestsList.find(r => r.identifier == requestIdentifier);
+				ctrl.sendPostRequest = (request, config) => {
 					request.status = RequestStatus.INPROGRESS;
-					$http.delete(request.url).then(response => {
+					$http.post(request.url, request.requestBody, config).then(response => {
 						request.response = JSON.stringify(response, null, 4);
 						request.status = RequestStatus.COMPLETE;
 					},
@@ -439,6 +447,46 @@
 							request.response = JSON.stringify(error, null, 4);
 							request.status = RequestStatus.COMPLETE;
 						});
+				}
+
+				ctrl.sendPutRequest = (request, config) => {
+					request.status = RequestStatus.INPROGRESS;
+					$http.put(request.url, request.requestBody, config).then(response => {
+						request.response = JSON.stringify(response, null, 4);
+						request.status = RequestStatus.COMPLETE;
+					},
+						error => {
+							request.response = JSON.stringify(error, null, 4);
+							request.status = RequestStatus.COMPLETE;
+						});
+				}
+
+				ctrl.sendDeleteRequest = (request, config) => {
+					request.status = RequestStatus.INPROGRESS;
+					$http.delete(request.url, config).then(response => {
+						request.response = JSON.stringify(response, null, 4);
+						request.status = RequestStatus.COMPLETE;
+					},
+						error => {
+							request.response = JSON.stringify(error, null, 4);
+							request.status = RequestStatus.COMPLETE;
+						});
+				}
+
+				ctrl.processAndGetConfig = (config) => {
+					let processedConfig = {
+						params: {},
+						headers: {}
+					};
+					if (config.params.length > 0 || config.headers.length > 0) {
+						config.params.forEach(param => {
+							processedConfig.params[param.key] = param.value;
+						});
+						config.headers.forEach(header => {
+							processedConfig.headers[header.key] = header.value;
+						});
+					}
+					return processedConfig;
 				}
 
 				ctrl.getGuid = () => {
@@ -458,6 +506,22 @@
 					this.type = args.type;
 					this.status = args.status;
 					this.response = args.response;
+					this.config = new APIRequestConfig(args.config);
+					this.requestBody = args.requestBody;
+				}
+			}
+
+			class APIRequestConfig {
+				constructor(args){
+					this.headers = args ? args.headers : [];
+					this.params = args ? args.params : [];
+				}
+			}
+
+			class Param {
+				constructor(key, value){
+					this.key = key;
+					this.value = value;
 				}
 			}
 
@@ -508,12 +572,33 @@
 						</div>
 					</th>
 					<tr>
-						<td style="vertical-align: top;" class="req-history-container">
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
-							<button style="display:block">Saved Request</button>
+						<td style="vertical-align: top; width:50%;" class="req-options-container" ng-if="ctrl.toggleRequestOptions">
+							<button ng-click="ctrl.toggleRequestOptions = false">{{"<"}}</button>
+							<div>
+								<div>
+									<h4>Params <button ng-click="ctrl.createParam()">+</button></h4>
+									<div ng-repeat="param in ctrl.selectedRequest.config.params">
+										<input type="text" style="display:inline" ng-model="param.key" placeholder="Key">
+										<input type="text" style="display:inline" ng-model="param.value" placeholder="Value">
+										<button ng-click="ctrl.removeParam($index)">X</button>
+									</div>
+								</div>
+								<div>
+									<h4>Headers <button ng-click="ctrl.createHeader()">+</button></h4>
+									<div ng-repeat="header in ctrl.selectedRequest.config.headers">
+										<input type="text" style="display:inline" ng-model="header.key" placeholder="Key">
+										<input type="text" style="display:inline" ng-model="header.value" placeholder="Value">
+										<button ng-click="ctrl.removeHeader($index)">X</button>
+									</div>
+								</div>
+								<div ng-if="ctrl.selectedRequest.type != 'GET' && ctrl.selectedRequest.type != 'DELETE'">
+									<h4>Request Body</h4>
+									<textarea style="width:100%" rows="10" ng-model="ctrl.selectedRequest.requestBody"></textarea>
+								</div>
+							</div>
+						</td>
+						<td style="vertical-align: top; width:10%;" class="req-options-container" ng-if="!ctrl.toggleRequestOptions">
+							<button ng-click="ctrl.toggleRequestOptions = true">{{">"}}</button>
 						</td>
 						<td class="selected-req-res-container">
 							<div class="req-container">
@@ -529,10 +614,6 @@
 									<input style="width:80%" type="text" placeholder="URL"
 										ng-model="ctrl.selectedRequest.url">
 								</div>
-								<div style="display: inline;">
-									<button ng-click="ctrl.sendRequest()"
-										ng-disabled="ctrl.selectedRequest.status == 'INPROGRESS'">Send</button>
-								</div>
 								<span style="display:block; font-size: 12px; color:red"
 									ng-if="ctrl.showUrlValidation && !ctrl.selectedRequest.url">
 									Please enter the URL
@@ -540,11 +621,19 @@
 							</div>
 							<div class="res-container">
 								<pre style="overflow-x: scroll;
-										height:400px;
-										border: 1px solid black;" ng-if="ctrl.selectedRequest">
-											{{ctrl.selectedRequest.response}}
-										</pre>
-								STATUS : {{ctrl.selectedRequest.status}}
+											height:400px;
+											border: 1px solid black;" ng-if="ctrl.selectedRequest">
+												{{ctrl.selectedRequest.response}}
+											</pre>
+								<div>
+									<div style="float:left">
+										STATUS : {{ctrl.selectedRequest.status}}
+									</div>
+									<div style="float: right;">
+										<button ng-click="ctrl.sendRequest()"
+											ng-disabled="ctrl.selectedRequest.status == 'INPROGRESS'">Send</button>
+									</div>
+								</div>
 							</div>
 						</td>
 					</tr>

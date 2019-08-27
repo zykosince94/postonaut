@@ -7,7 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('extension.openPostonaut', () => {
 			const panel = vscode.window.createWebviewPanel(
 				'openPostonaut',
-				'Open Postonaut',
+				'Postonaut',
 				vscode.ViewColumn.One,
 				{
 					enableScripts: true
