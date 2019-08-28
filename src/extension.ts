@@ -25,7 +25,10 @@ export function activate(context: vscode.ExtensionContext) {
 				);
 			}
 
+			// For packaging
+			// const filePath: vscode.Uri = vscode.Uri.file(path.join(context.extensionPath, 'out', 'src', 'extension.html'));
 			const filePath: vscode.Uri = vscode.Uri.file(path.join(context.extensionPath, 'src', 'extension.html'));
+			
 			currentPanel.webview.html = fs.readFileSync(filePath.fsPath, 'utf8');
 			currentPanel.onDidDispose(() => { currentPanel = undefined }, null, context.subscriptions);
 		})

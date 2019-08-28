@@ -1,6 +1,7 @@
 {
 	"name": "postonaut",
 	"displayName": "Postonaut",
+	"publisher": "zykosince94",
 	"description": "REST API Client with GUI",
 	"version": "0.0.1",
 	"engines": {
@@ -22,7 +23,8 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run compile && npm run copyHtml",
+		"copyHtml": "copyfiles -u 1 src/extension.html out",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile",
