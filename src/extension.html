@@ -365,7 +365,8 @@
 				ctrl.title = "Postonaut";
 				ctrl.requestsList = [];
 				ctrl.selectedRequest;
-				ctrl.showUrlValidation = false;
+				ctrl.showValidationError = false;
+				ctrl.validationErrorText = "";
 				ctrl.toggleRequestOptions = true;
 
 				ctrl.init = () => {
@@ -374,7 +375,7 @@
 				}
 
 				ctrl.createNewRequest = () => {
-					ctrl.showUrlValidation = false;
+					ctrl.showValidationError = false;
 					ctrl.requestsList.push(new APIRequest({
 						identifier: ctrl.getGuid(),
 						type: RequestTypes.GET,
@@ -384,7 +385,7 @@
 				}
 
 				ctrl.selectRequest = (index) => {
-					ctrl.showUrlValidation = false;
+					ctrl.showValidationError = false;
 					ctrl.selectedRequest = ctrl.requestsList[index];
 				}
 
@@ -406,23 +407,50 @@
 
 				ctrl.sendRequest = () => {
 					if (ctrl.selectedRequest.url) {
-						const request = ctrl.requestsList.find(r => r.identifier == ctrl.selectedRequest.identifier);
-						const config = ctrl.processAndGetConfig(request.config);
+						if (ctrl.validateParamsAndHeaders()) {
+							const request = ctrl.requestsList.find(r => r.identifier == ctrl.selectedRequest.identifier);
+							const config = ctrl.processAndGetConfig(request.config);
 
-						switch (ctrl.selectedRequest.type) {
-							case (RequestTypes.GET): ctrl.sendGetRequest(request, config);
-								break;
-							case (RequestTypes.POST): ctrl.sendPostRequest(request, config);
-								break;
-							case (RequestTypes.PUT): ctrl.sendPutRequest(request, config);
-								break;
-							case (RequestTypes.DELETE): ctrl.sendDeleteRequest(request, config);
-								break;
-							default: break;
+							switch (ctrl.selectedRequest.type) {
+								case (RequestTypes.GET): ctrl.sendGetRequest(request, config);
+									break;
+								case (RequestTypes.POST): ctrl.sendPostRequest(request, config);
+									break;
+								case (RequestTypes.PUT): ctrl.sendPutRequest(request, config);
+									break;
+								case (RequestTypes.DELETE): ctrl.sendDeleteRequest(request, config);
+									break;
+								default: break;
+							}
+						} else {
+							ctrl.validationErrorText = "Please enter the values for added parameters and headers";
+							ctrl.showValidationError = true;
+							setTimeout(() => {
+								ctrl.showValidationError = false;
+							}, 2000);
 						}
 					} else {
-						ctrl.showUrlValidation = true;
+						ctrl.validationErrorText = "Please enter a URL";
+						ctrl.showValidationError = true;
+						setTimeout(() => {
+							ctrl.showValidationError = false;
+						}, 2000);
 					}
+				}
+
+				ctrl.validateParamsAndHeaders = () => {
+					let isValid = true;
+					ctrl.selectedRequest.config.params.forEach(param => {
+						if (!param.key || !param.value) {
+							isValid = false;
+						}
+					});
+					ctrl.selectedRequest.config.headers.forEach(header => {
+						if (!header.key || !header.value) {
+							isValid = false;
+						}
+					});
+					return isValid;
 				}
 
 				ctrl.sendGetRequest = (request, config) => {
@@ -615,8 +643,8 @@
 										ng-model="ctrl.selectedRequest.url">
 								</div>
 								<span style="display:block; font-size: 12px; color:red"
-									ng-if="ctrl.showUrlValidation && !ctrl.selectedRequest.url">
-									Please enter the URL
+									ng-if="ctrl.showValidationError && (!ctrl.selectedRequest.url || !ctrl.validateParamsAndHeaders())">
+									{{ctrl.validationErrorText}}
 								</span>
 							</div>
 							<div class="res-container">
