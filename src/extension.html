@@ -362,7 +362,7 @@
 			var app = angular.module("postonautApp", []);
 			app.controller("appCtrl", function ($scope, $http) {
 				var ctrl = this;
-				ctrl.title = "Postonaut";
+				ctrl.title = "POSTONAUT";
 				ctrl.requestsList = [];
 				ctrl.selectedRequest;
 				ctrl.showValidationError = false;
@@ -569,27 +569,61 @@
 	
 		<!-- Application CSS -->
 		<style>
+			body {
+				font-family: monospace;
+			}
+
 			.title-container {
-				padding: 20px;
+				padding-left: 20px;
 			}
 	
 			.app-container table td,
 			th {
 				padding: 20px;
 			}
+
+			.app-container table th,td {
+				border-style: groove;
+    			border-radius: 15px;
+				border-color:rgba(192,192,192,0.3);
+			}
+
+			button {
+				background-color: #3366ff;
+				color: white;
+				font-family: monospace;
+				border: none;
+				padding: 10px;
+				border-radius: 15px;
+			}
+
+			button:focus{
+				outline:none;
+			}
+
+			button.selected {
+				background-color: white;
+				color: black;
+				border:1px solid #3366ff;
+			}
+
+			button.danger {
+				background-color: red;
+			}
 		</style>
 	
 		<!-- Application HTML -->
 		<div ng-app="postonautApp" ng-controller="appCtrl as ctrl">
-			<div class="title-container">
+			<div style="width:175px;" class="title-container">
 				<h1>{{ctrl.title}}</h1>
+				<p>REST Client</p>
 			</div>
 			<div class="app-container">
-				<table border="1" style="width:100%">
+				<table style="width:100%; max-width:1105px; min-width:1105px;">
 					<th colspan="2" style="text-align: left;">
 						<div class="req-tabs-container">
-							<div style="display:inline" ng-repeat="req in ctrl.requestsList">
-								<button ng-click="ctrl.selectRequest($index)">{{req.type}} -
+							<div style="display:inline;" ng-repeat="req in ctrl.requestsList">
+								<button style="margin-top:5px; margin-bottom:5px;" ng-class="{'selected' : ctrl.selectedRequest.identifier == req.identifier}" ng-click="ctrl.selectRequest($index)">{{req.type}} -
 									{{req.url ? (req.url.length > 15 ? (req.url.substring(0, 15) + "..") : req.url) : "New Request"}}</button>
 							</div>
 							<div style="display:inline">
@@ -600,35 +634,43 @@
 						</div>
 					</th>
 					<tr>
-						<td style="vertical-align: top; width:50%;" class="req-options-container" ng-if="ctrl.toggleRequestOptions">
-							<button ng-click="ctrl.toggleRequestOptions = false">{{"<"}}</button>
+						<td style="vertical-align: top; width:25%;" class="req-options-container" ng-if="ctrl.toggleRequestOptions">
+							<button style="min-width: 100px;" ng-click="ctrl.toggleRequestOptions = false">{{"Options <<"}}</button>
 							<div>
 								<div>
 									<h4>Params <button ng-click="ctrl.createParam()">+</button></h4>
-									<div ng-repeat="param in ctrl.selectedRequest.config.params">
+									<div style="width:390px" ng-repeat="param in ctrl.selectedRequest.config.params">
 										<input type="text" style="display:inline" ng-model="param.key" placeholder="Key">
 										<input type="text" style="display:inline" ng-model="param.value" placeholder="Value">
-										<button ng-click="ctrl.removeParam($index)">X</button>
+										<button style="margin-top:5px;margin-bottom:5px;" class="danger" ng-click="ctrl.removeParam($index)">X</button>
 									</div>
 								</div>
 								<div>
 									<h4>Headers <button ng-click="ctrl.createHeader()">+</button></h4>
-									<div ng-repeat="header in ctrl.selectedRequest.config.headers">
+									<div style="width:390px" ng-repeat="header in ctrl.selectedRequest.config.headers">
 										<input type="text" style="display:inline" ng-model="header.key" placeholder="Key">
 										<input type="text" style="display:inline" ng-model="header.value" placeholder="Value">
-										<button ng-click="ctrl.removeHeader($index)">X</button>
+										<button style="margin-top:5px;margin-bottom:5px;"class="danger" ng-click="ctrl.removeHeader($index)">X</button>
 									</div>
 								</div>
 								<div ng-if="ctrl.selectedRequest.type != 'GET' && ctrl.selectedRequest.type != 'DELETE'">
 									<h4>Request Body</h4>
 									<textarea style="width:100%" rows="10" ng-model="ctrl.selectedRequest.requestBody"></textarea>
 								</div>
-							</div>
+								</div>
+								<div style="display:block; margin-top:30px;">
+									<button ng-click="ctrl.sendRequest()" ng-disabled="ctrl.selectedRequest.status == 'INPROGRESS'">Send</button>
+								</div>
 						</td>
 						<td style="vertical-align: top; width:10%;" class="req-options-container" ng-if="!ctrl.toggleRequestOptions">
-							<button ng-click="ctrl.toggleRequestOptions = true">{{">"}}</button>
+							<button style="min-width: 100px;" ng-click="ctrl.toggleRequestOptions = true">{{"Options >>"}}</button>
+							<h4>Params ({{ctrl.selectedRequest.config.params.length}})</h4>
+							<h4>Headers ({{ctrl.selectedRequest.config.headers.length}})</h4>
+							<div style="display:block; margin-top:30px;">
+								<button ng-click="ctrl.sendRequest()" ng-disabled="ctrl.selectedRequest.status == 'INPROGRESS'">Send</button>
+							</div>
 						</td>
-						<td class="selected-req-res-container">
+						<td style="vertical-align:top; width:600px" class="selected-req-res-container">
 							<div class="req-container">
 								<div style="display: inline" class="req-type-container">
 									<select ng-model="ctrl.selectedRequest.type">
@@ -639,7 +681,7 @@
 									</select>
 								</div>
 								<div style="display: inline" class="req-url-container">
-									<input style="width:80%" type="text" placeholder="URL"
+									<input style="width:516px" type="text" placeholder="URL"
 										ng-model="ctrl.selectedRequest.url">
 								</div>
 								<span style="display:block; font-size: 12px; color:red"
@@ -650,16 +692,14 @@
 							<div class="res-container">
 								<pre style="overflow-x: scroll;
 											height:400px;
-											border: 1px solid black;" ng-if="ctrl.selectedRequest">
+											max-width:600px;
+											min-width:600px;
+											border:1px solid rgba(192,192,192,0.3)" ng-if="ctrl.selectedRequest">
 												{{ctrl.selectedRequest.response}}
 											</pre>
 								<div>
-									<div style="float:left">
+									<div>
 										STATUS : {{ctrl.selectedRequest.status}}
-									</div>
-									<div style="float: right;">
-										<button ng-click="ctrl.sendRequest()"
-											ng-disabled="ctrl.selectedRequest.status == 'INPROGRESS'">Send</button>
 									</div>
 								</div>
 							</div>
