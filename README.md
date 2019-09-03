@@ -1,1 +1,1 @@
-LALLALALA
+Postonaut is a REST Client extension for Visual Studio Code for testing APIs with a GUI
